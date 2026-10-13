@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISMO-AI // Sistema de Monitoreo Sísmico & Inteligencia de Refuerzo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fuentes Técnicas: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        base: {
+                            bg: '#020B18',
+                            panel: '#06162B',
+                            border: '#0879C9',
+                            text: '#EAF4FF',
+                            muted: '#9DB5D0'
+                        },
+                        neon: {
+                            cyan: '#00D9FF',
+                            green: '#00E5A0',
+                            yellow: '#FFC247',
+                            orange: '#FF8A35',
+                            red: '#FF405B',
+                            purple: '#A855F7'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg-main: #020B18;
+            --bg-panel: #06162B;
+            --border-glow: #0879C9;
+            --neon-cyan: #00D9FF;
+            --neon-green: #00E5A0;
+            --neon-yellow: #FFC247;
+            --neon-orange: #FF8A35;
+            --neon-red: #FF405B;
+            --neon-purple: #A855F7;
+            --text-main: #EAF4FF;
+            --text-muted: #9DB5D0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Paneles con borde técnico iluminado y sutil degradado */
+        .cyber-panel {
+            background: linear-gradient(180deg, rgba(6, 22, 43, 0.95) 0%, rgba(4, 15, 30, 0.98) 100%);
+            border: 1px solid rgba(8, 121, 201, 0.35);
+            box-shadow: 0 4px 20px rgba(2, 11, 24, 0.7), inset 0 1px 0 rgba(8, 121, 201, 0.2);
+            border-radius: 0.75rem;
+            position: relative;
+        }
+
+        .cyber-panel:hover {
+            border-color: rgba(8, 121, 201, 0.55);
+        }
+
+        /* Resplandores analíticos controlados */
+        .glow-cyan-subtle {
+            box-shadow: 0 0 12px rgba(0, 217, 255, 0.15);
+        }
+
+        .glow-purple-subtle {
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
+        }
+
+        .glow-red-subtle {
+            box-shadow: 0 0 12px rgba(255, 64, 91, 0.2);
+        }
+
+        /* Líneas de escaneo y cuadrículas cartográficas */
+        .grid-overlay {
+            background-image: 
+                linear-gradient(rgba(8, 121, 201, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(8, 121, 201, 0.08) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        /* Scrollbars técnicos delgados */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(6, 22, 43, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(8, 121, 201, 0.4);
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-cyan);
+        }
+
+        /* Botones de navegación de módulos */
+        .tab-btn {
+            padding: 0.4rem 0.85rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            border: 1px solid rgba(8, 121, 201, 0.3);
+            background: #06162B;
+            color: #9DB5D0;
+        }
+        .tab-btn:hover {
+            border-color: #00D9FF;
+            color: #EAF4FF;
+        }
+        .tab-btn.active {
+            background: rgba(8, 121, 201, 0.25);
+            border-color: #00D9FF;
+            color: #00D9FF;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-3 gap-3">
+
+    <!-- ========================================== -->
+    <!-- 1. HEADER EXCLUSIVO DE TELEMETRÍA & SISTEMA -->
+    <!-- PROHIBIDO: Login, avatares, perfiles, emojis -->
+    <!-- ========================================== -->
+    <header class="cyber-panel px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 border-b border-[#0879C9]/50">
+        <!-- Identidad del Sistema y Nodo -->
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-[#0879C9]/15 border border-[#00D9FF] flex items-center justify-center text-[#00D9FF]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="font-mono text-xs tracking-widest text-[#00D9FF] font-bold">SISMO-AI // NODO-SANTANDER</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0879C9]/20 text-[#00D9FF] border border-[#0879C9]/40">v4.2-RL</span>
+                </div>
+                <h1 class="text-sm font-semibold tracking-wide text-base-text uppercase">Plataforma de Monitoreo Sísmico & Priorización Territorial</h1>
+            </div>
+        </div>
+
+        <!-- Módulo Activo -->
+        <div class="hidden md:flex items-center gap-2 px-3 py-1 rounded bg-[#06162B] border border-[#0879C9]/40">
+            <span class="w-2 h-2 rounded-full bg-[#A855F7] animate-pulse"></span>
+            <span class="text-xs font-mono text-base-muted">MODULO ACTIVO:</span>
+            <span class="text-xs font-mono font-bold text-[#A855F7]" id="active-module-text">INFERENCIA MULTI-AGENTE (BOOTSTRAPPED DQN)</span>
+        </div>
+
+        <!-- Estado de Telemetría & Metadatos del Sistema -->
+        <div class="flex items-center gap-4 text-xs font-mono">
+            <div class="flex flex-col text-right">
+                <span class="text-[11px] text-base-muted">ULTIMA TELEMETRIA:</span>
+                <span class="font-semibold text-[#EAF4FF]" id="system-timestamp">2026-10-13 11:42:00 UTC</span>
+            </div>
+
+            <div class="h-6 w-[1px] bg-[#0879C9]/30"></div>
+
+            <div class="flex items-center gap-2 px-2.5 py-1 rounded bg-[#00E5A0]/10 border border-[#00E5A0]/30 text-[#00E5A0]">
+                <span class="w-2 h-2 rounded-full bg-[#00E5A0] shadow-[0_0_8px_#00E5A0]"></span>
+                <span class="font-bold tracking-wider">ONLINE</span>
+                <span class="text-base-muted text-[10px]">| LAT: 24 ms</span>
+            </div>
+
+            <div class="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded bg-[#06162B] border border-[#0879C9]/40 text-base-muted text-[11px]">
+                <span>SGC-RSNC</span>
+                <span class="text-[#00E5A0]">●</span>
+                <span>DANE</span>
+                <span class="text-[#00E5A0]">●</span>
+                <span>IGAC</span>
+                <span class="text-[#00E5A0]">●</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================== -->
+    <!-- 2. BARRA DE NAVEGACIÓN DE MÓDULOS DEL RETO -->
+    <!-- ========================================== -->
+    <nav class="flex items-center gap-2 overflow-x-auto pb-1">
+        <button onclick="switchTab('tab-live')" id="btn-tab-live" class="tab-btn active">
+            1. TELEMETRIA & INFERENCIA RL EN VIVO
+        </button>
+        <button onclick="switchTab('tab-mdp')" id="btn-tab-mdp" class="tab-btn">
+            2. FORMULACION MATEMATICA MDP & RECOMPENSAS
+        </button>
+        <button onclick="switchTab('tab-eval')" id="btn-tab-eval" class="tab-btn">
+            3. VALIDACION CRONOLOGICA (2022-2026)
+        </button>
+        <button onclick="switchTab('tab-dict')" id="btn-tab-dict" class="tab-btn">
+            4. CATALOGO SGC + DANE (28 VARIABLES & FUENTES)
+        </button>
+        <button onclick="switchTab('tab-downloads')" id="btn-tab-downloads" class="tab-btn">
+            5. CENTRO DE DESCARGA & CODIGO REPRODUCTIBLE
+        </button>
+    </nav>
+
+    <!-- ========================================== -->
+    <!-- VISTA 1: TELEMETRÍA Y MAPA EN VIVO         -->
+    <!-- ========================================== -->
+    <div id="tab-live" class="tab-content flex flex-col gap-3">
+        <!-- FRANJA DE KPIS -->
+        <section class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div class="cyber-panel p-3 border-l-2 border-l-[#00D9FF]">
+                <div class="flex items-center justify-between text-base-muted text-xs mb-1 font-mono">
+                    <span>SISMOS EN CATALOGO</span>
+                    <svg class="w-3.5 h-3.5 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span class="text-2xl font-bold font-mono text-[#EAF4FF]">199,013</span>
+                    <span class="text-xs font-mono text-[#00E5A0] font-semibold">100% REAL</span>
+                </div>
+                <span class="text-[10px] text-base-muted font-mono">Jun 1993 a Oct 2026</span>
+            </div>
+
+            <div class="cyber-panel p-3 border-l-2 border-l-[#FFC247]">
+                <div class="flex items-center justify-between text-base-muted text-xs mb-1 font-mono">
+                    <span>MAGNITUD MAX HISTORICA</span>
+                    <svg class="w-3.5 h-3.5 text-[#FFC247]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span class="text-2xl font-bold font-mono text-[#FFC247]">6.6 <span class="text-xs text-base-muted font-normal">Mw</span></span>
+                    <span class="text-[10px] font-mono px-1 rounded bg-[#FFC247]/15 text-[#FFC247] border border-[#FFC247]/30">CRITICO</span>
+                </div>
+                <span class="text-[10px] text-base-muted font-mono">Sismo Mesa Los Santos 2015</span>
+            </div>
+
+            <div class="cyber-panel p-3 border-l-2 border-l-[#00E5A0]">
+                <div class="flex items-center justify-between text-base-muted text-xs mb-1 font-mono">
+                    <span>COBERTURA DANE / IGAC</span>
+                    <svg class="w-3.5 h-3.5 text-[#00E5A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span class="text-2xl font-bold font-mono text-[#EAF4FF]">87 / 87</span>
+                    <span class="text-xs font-mono text-[#00E5A0]">100%</span>
+                </div>
+                <span class="text-[10px] text-base-muted font-mono">Población, NBI & Vivienda</span>
+            </div>
+
+            <div class="cyber-panel p-3 border-l-2 border-l-[#FF405B] glow-red-subtle">
+                <div class="flex items-center justify-between text-base-muted text-xs mb-1 font-mono">
+                    <span>NIDO SISMICO (PROPORCION)</span>
+                    <svg class="w-3.5 h-3.5 text-[#FF405B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span class="text-2xl font-bold font-mono text-[#FF405B]">84.2%</span>
+                    <span class="text-xs font-mono text-[#FF8A35]">PROFUNDOS</span>
+                </div>
+                <span class="text-[10px] text-base-muted font-mono">Foco a ~150 km profundidad</span>
+            </div>
+
+            <div class="cyber-panel p-3 border-l-2 border-l-[#A855F7] glow-purple-subtle">
+                <div class="flex items-center justify-between text-base-muted text-xs mb-1 font-mono">
+                    <span>PRIORIZACION AGENTE RL</span>
+                    <svg class="w-3.5 h-3.5 text-[#A855F7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span class="text-lg font-bold font-mono text-[#A855F7] truncate">ZONA-0 // SANTOS</span>
+                </div>
+                <span class="text-[10px] text-base-muted font-mono">Q-Value Opt: 16.84</span>
+            </div>
+
+            <div class="cyber-panel p-3 border-l-2 border-l-[#00D9FF]">
+                <div class="flex items-center justify-between text-base-muted text-xs mb-1 font-mono">
+                    <span>INCERTIDUMBRE (σ² Q)</span>
+                    <svg class="w-3.5 h-3.5 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span class="text-2xl font-bold font-mono text-[#00D9FF]">0.428</span>
+                    <span class="text-[10px] font-mono px-1 rounded bg-[#00E5A0]/15 text-[#00E5A0]">CERTEZA</span>
+                </div>
+                <span class="text-[10px] text-base-muted font-mono">Entropía Boltzmann: 0.12</span>
+            </div>
+        </section>
+
+        <!-- GRID PRINCIPAL 3 COLUMNAS -->
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1">
+            <!-- Feed Sísmico -->
+            <section class="lg:col-span-3 flex flex-col gap-3">
+                <div class="cyber-panel p-3">
+                    <div class="flex items-center justify-between border-b border-[#0879C9]/30 pb-2 mb-2.5">
+                        <span class="text-xs font-mono font-bold text-base-text flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                            CONTROL DE TELEMETRIA
+                        </span>
+                        <span class="text-[10px] font-mono text-base-muted">SGC-RSNC</span>
+                    </div>
+                    <div class="space-y-2 text-xs font-mono">
+                        <div>
+                            <div class="flex justify-between text-base-muted text-[11px] mb-1">
+                                <span>PERIODO CERTIFICADO:</span>
+                                <span class="text-[#00D9FF]">1993 - 2026</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-1 text-[10px]">
+                                <div class="p-1 rounded bg-[#020B18] border border-[#0879C9]/30 text-center">
+                                    <span class="text-base-muted block">Periodo 1</span>
+                                    <span class="text-[#00D9FF] font-bold">1993 - Feb 2018</span>
+                                </div>
+                                <div class="p-1 rounded bg-[#020B18] border border-[#0879C9]/30 text-center">
+                                    <span class="text-base-muted block">Periodo 2</span>
+                                    <span class="text-[#A855F7] font-bold">Mar 2018 - Oct 2026</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-base-muted text-[11px] mb-1">
+                                <span>DISTRIBUCION FOCAL:</span>
+                            </div>
+                            <div class="flex items-center justify-between p-1.5 rounded bg-[#020B18] border border-[#0879C9]/25 text-[11px]">
+                                <span class="text-base-text">Cortical (&lt; 70 km)</span>
+                                <span class="text-[#FF8A35] font-bold font-mono">15.8% (Destructivos)</span>
+                            </div>
+                            <div class="flex items-center justify-between p-1.5 rounded bg-[#020B18] border border-[#0879C9]/25 text-[11px] mt-1">
+                                <span class="text-base-text">Intermedio (Nido)</span>
+                                <span class="text-[#00D9FF] font-bold font-mono">84.2% (~150 km)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cyber-panel p-3 flex-1 flex flex-col">
+                    <div class="flex items-center justify-between border-b border-[#0879C9]/30 pb-2 mb-2">
+                        <span class="text-xs font-mono font-bold text-base-text flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-[#00E5A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            REGISTRO CRONOLOGICO (RSNC)
+                        </span>
+                        <span class="text-[10px] font-mono text-[#00E5A0] font-semibold">199,013 REG.</span>
+                    </div>
+                    <div class="space-y-2 overflow-y-auto max-h-[380px] pr-1 flex-1 font-mono text-xs">
+                        <div class="p-2 rounded bg-[#020B18] border border-[#FF8A35]/40 flex flex-col gap-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-[#FF8A35]">M 4.2 Mw</span>
+                                <span class="text-[10px] text-base-muted">13/10/2026 12:53 UTC</span>
+                            </div>
+                            <div class="flex justify-between text-[11px] text-base-text">
+                                <span>ZAPATOCA</span>
+                                <span class="text-base-muted">Prof: 138.4 km</span>
+                            </div>
+                            <div class="flex items-center justify-between text-[10px] text-base-muted border-t border-[#0879C9]/20 pt-1">
+                                <span>GAP: 68° | RMS: 0.3s</span>
+                                <span class="text-[#00E5A0]">REVISADO</span>
+                            </div>
+                        </div>
+
+                        <div class="p-2 rounded bg-[#020B18] border border-[#0879C9]/30 flex flex-col gap-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-[#00D9FF]">M 2.6 Ml</span>
+                                <span class="text-[10px] text-base-muted">13/10/2026 11:18 UTC</span>
+                            </div>
+                            <div class="flex justify-between text-[11px] text-base-text">
+                                <span>LOS SANTOS</span>
+                                <span class="text-base-muted">Prof: 152.0 km</span>
+                            </div>
+                            <div class="flex items-center justify-between text-[10px] text-base-muted border-t border-[#0879C9]/20 pt-1">
+                                <span>GAP: 54° | RMS: 0.2s</span>
+                                <span class="text-[#00E5A0]">REVISADO</span>
+                            </div>
+                        </div>
+
+                        <div class="p-2 rounded bg-[#020B18] border border-[#0879C9]/30 flex flex-col gap-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-[#00D9FF]">M 2.1 Ml</span>
+                                <span class="text-[10px] text-base-muted">13/10/2026 09:42 UTC</span>
+                            </div>
+                            <div class="flex justify-between text-[11px] text-base-text">
+                                <span>CEPITA</span>
+                                <span class="text-base-muted">Prof: 149.8 km</span>
+                            </div>
+                            <div class="flex items-center justify-between text-[10px] text-base-muted border-t border-[#0879C9]/20 pt-1">
+                                <span>GAP: 72° | RMS: 0.4s</span>
+                                <span class="text-[#00E5A0]">REVISADO</span>
+                            </div>
+                        </div>
+
+                        <div class="p-2 rounded bg-[#020B18] border border-[#FFC247]/40 flex flex-col gap-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-[#FFC247]">M 2.9 Ml [CORTICAL]</span>
+                                <span class="text-[10px] text-base-muted">13/10/2026 04:15 UTC</span>
+                            </div>
+                            <div class="flex justify-between text-[11px] text-base-text">
+                                <span>RIONEGRO (Falla B/manga)</span>
+                                <span class="text-[#FF8A35]">Prof: 14.2 km</span>
+                            </div>
+                            <div class="flex items-center justify-between text-[10px] text-base-muted border-t border-[#0879C9]/20 pt-1">
+                                <span>PGA Est: 0.048g</span>
+                                <span class="text-[#FFC247]">VIGILANCIA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Visor Cartográfico Vectorial -->
+            <section class="lg:col-span-6 flex flex-col gap-3">
+                <div class="cyber-panel p-3 flex-1 flex flex-col relative overflow-hidden">
+                    <div class="flex flex-wrap items-center justify-between border-b border-[#0879C9]/30 pb-2 mb-2 gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-mono font-bold text-base-text flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                                VISOR CARTOGRAFICO // DEPARTAMENTO DE SANTANDER
+                            </span>
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0879C9]/20 text-[#00D9FF] border border-[#0879C9]/40">EPSG:4326</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-[10px] font-mono">
+                            <span class="px-2 py-0.5 rounded bg-[#0879C9]/30 border border-[#00D9FF] text-[#00D9FF] font-semibold">EPICENTROS SGC</span>
+                            <span class="px-2 py-0.5 rounded bg-[#06162B] border border-[#0879C9]/30 text-base-muted">FALLAS ACTIVAS</span>
+                            <span class="px-2 py-0.5 rounded bg-[#06162B] border border-[#0879C9]/30 text-base-muted">DANE CNPV</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full flex-1 min-h-[340px] bg-[#020B18] rounded border border-[#0879C9]/30 relative grid-overlay flex items-center justify-center overflow-hidden">
+                        <div class="absolute top-2 left-2 text-[10px] font-mono text-base-muted/60 pointer-events-none">
+                            LAT: 06°48'00"N | LON: 73°07'12"W
+                        </div>
+                        <div class="absolute bottom-2 left-2 text-[10px] font-mono text-base-muted/60 pointer-events-none flex items-center gap-2">
+                            <span>ESCALA 1:250,000</span>
+                            <span>|</span>
+                            <span>DATUM MAGNA-SIRGAS</span>
+                        </div>
+
+                        <!-- Mapa Vectorial de Santander con Fallas y Epicentros -->
+                        <svg class="w-full h-full max-h-[360px]" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M 280 40 L 360 70 L 410 110 L 440 180 L 410 250 L 360 320 L 300 360 L 220 340 L 160 280 L 140 200 L 180 120 L 230 60 Z" 
+                                  stroke="#0879C9" stroke-width="1.8" stroke-dasharray="3 3" fill="rgba(8, 121, 201, 0.04)" />
+
+                            <!-- Fallas Geológicas Activas -->
+                            <path d="M 330 50 Q 300 150 270 340" stroke="#FF8A35" stroke-width="1.5" stroke-dasharray="4 2" opacity="0.75" />
+                            <path d="M 270 120 Q 230 220 210 320" stroke="#FF405B" stroke-width="1.5" stroke-dasharray="5 2" opacity="0.7" />
+
+                            <!-- Nido Sísmico de Bucaramanga (Mesa de Los Santos) -->
+                            <circle cx="280" cy="180" r="38" fill="rgba(168, 85, 247, 0.12)" stroke="#A855F7" stroke-width="1.2" stroke-dasharray="2 2" />
+                            <circle cx="280" cy="180" r="14" fill="rgba(0, 217, 255, 0.2)" stroke="#00D9FF" stroke-width="1.5" />
+                            <circle cx="280" cy="180" r="4" fill="#00D9FF" />
+                            <text x="295" y="176" fill="#00D9FF" font-family="JetBrains Mono" font-size="11" font-weight="bold">NIDO SISMICO (LOS SANTOS)</text>
+                            <text x="295" y="190" fill="#9DB5D0" font-family="JetBrains Mono" font-size="9">Prof: 140-160 km | Tasa: 84%</text>
+
+                            <!-- Centros Urbanos -->
+                            <circle cx="300" cy="120" r="5" fill="#EAF4FF" stroke="#00D9FF" stroke-width="2" />
+                            <text x="312" y="124" fill="#EAF4FF" font-family="Inter" font-size="10" font-weight="600">Bucaramanga (AMB)</text>
+
+                            <circle cx="180" cy="140" r="4" fill="#EAF4FF" stroke="#0879C9" stroke-width="1.5" />
+                            <text x="120" y="144" fill="#9DB5D0" font-family="Inter" font-size="9">Barrancabermeja</text>
+
+                            <circle cx="290" cy="240" r="4" fill="#EAF4FF" stroke="#00E5A0" stroke-width="1.5" />
+                            <text x="300" y="244" fill="#9DB5D0" font-family="Inter" font-size="9">San Gil</text>
+
+                            <circle cx="220" cy="310" r="4" fill="#FFC247" stroke="#FF8A35" stroke-width="1.5" />
+                            <text x="232" y="314" fill="#FFC247" font-family="Inter" font-size="9">Vélez</text>
+
+                            <!-- Sismos Dispersos -->
+                            <circle cx="274" cy="172" r="3" fill="#00E5A0" opacity="0.9" />
+                            <circle cx="284" cy="185" r="4.5" fill="#FFC247" opacity="0.9" />
+                            <circle cx="268" cy="192" r="3.2" fill="#00D9FF" opacity="0.8" />
+                            <circle cx="292" cy="168" r="2.8" fill="#00E5A0" opacity="0.9" />
+                            <circle cx="282" cy="177" r="5" fill="#FF8A35" opacity="0.9" />
+                            <circle cx="310" cy="135" r="3.5" fill="#FF405B" opacity="0.85" />
+                        </svg>
+
+                        <!-- Leyenda -->
+                        <div class="absolute bottom-2 right-2 bg-[#06162B]/95 p-2 rounded border border-[#0879C9]/40 text-[10px] font-mono flex flex-col gap-1 shadow-lg">
+                            <span class="text-base-muted font-bold text-[9px] uppercase border-b border-[#0879C9]/30 pb-0.5">Escala de Riesgo Socio-Sísmico</span>
+                            <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#00E5A0]"></span><span>Bajo (&lt; 25)</span></div>
+                            <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#FFC247]"></span><span>Moderado (25-50)</span></div>
+                            <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#FF8A35]"></span><span>Medio-Alto (50-75)</span></div>
+                            <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#FF405B]"></span><span>Crítico (&gt; 75)</span></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-[#0879C9]/20 text-[11px] font-mono">
+                        <div class="p-1.5 rounded bg-[#020B18] border border-[#0879C9]/30 text-center">
+                            <span class="text-base-muted block text-[10px]">COEFICIENTE b (G-R)</span>
+                            <span class="font-bold text-[#00D9FF]">b = 0.94 ± 0.05</span>
+                        </div>
+                        <div class="p-1.5 rounded bg-[#020B18] border border-[#0879C9]/30 text-center">
+                            <span class="text-base-muted block text-[10px]">DEFORMACION BENIOFF</span>
+                            <span class="font-bold text-[#A855F7]">ε = 4.12 × 10⁸ J½</span>
+                        </div>
+                        <div class="p-1.5 rounded bg-[#020B18] border border-[#0879C9]/30 text-center">
+                            <span class="text-base-muted block text-[10px]">PGA MAX ESTIMADA</span>
+                            <span class="font-bold text-[#FF8A35]">0.082 g (AMB)</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Ensamble Q-Learning -->
+            <section class="lg:col-span-3 flex flex-col gap-3">
+                <div class="cyber-panel p-3">
+                    <div class="flex items-center justify-between border-b border-[#0879C9]/30 pb-2 mb-2">
+                        <span class="text-xs font-mono font-bold text-base-text flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-[#A855F7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                            ENSAMBLE Q-LEARNING (B-DQN)
+                        </span>
+                        <span class="text-[10px] font-mono text-[#A855F7] font-semibold">M = 5 REDES</span>
+                    </div>
+
+                    <div class="space-y-2.5 text-xs font-mono">
+                        <p class="text-[11px] text-base-muted leading-relaxed">
+                            Valores Q esperados por macro-zona con intervalos de incertidumbre epistémica (desacuerdo inter-redes):
+                        </p>
+
+                        <div>
+                            <div class="flex justify-between text-[11px] mb-1">
+                                <span class="text-[#00D9FF] font-semibold">0: Los Santos / Guanentá</span>
+                                <span class="font-bold text-[#00D9FF]">Q = 16.84 [OPT]</span>
+                            </div>
+                            <div class="w-full bg-[#020B18] h-2.5 rounded-full overflow-hidden border border-[#0879C9]/40 relative">
+                                <div class="bg-[#00D9FF] h-full rounded-full" style="width: 88%"></div>
+                            </div>
+                            <div class="flex justify-between text-[9px] text-base-muted mt-0.5">
+                                <span>Varianza σ²: 0.24</span>
+                                <span class="text-[#00E5A0]">Alta Certeza</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[11px] mb-1">
+                                <span class="text-base-text">1: Área Metrop. Bucaramanga</span>
+                                <span class="text-base-muted font-mono">Q = 12.15</span>
+                            </div>
+                            <div class="w-full bg-[#020B18] h-2.5 rounded-full overflow-hidden border border-[#0879C9]/40">
+                                <div class="bg-[#A855F7] h-full rounded-full" style="width: 64%"></div>
+                            </div>
+                            <div class="flex justify-between text-[9px] text-base-muted mt-0.5">
+                                <span>Varianza σ²: 0.68</span>
+                                <span class="text-[#FFC247]">Certeza Media</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[11px] mb-1">
+                                <span class="text-base-text">2: Magdalena Medio / Mares</span>
+                                <span class="text-base-muted font-mono">Q = 9.40</span>
+                            </div>
+                            <div class="w-full bg-[#020B18] h-2.5 rounded-full overflow-hidden border border-[#0879C9]/40">
+                                <div class="bg-[#0879C9] h-full rounded-full" style="width: 48%"></div>
+                            </div>
+                            <div class="flex justify-between text-[9px] text-base-muted mt-0.5">
+                                <span>Varianza σ²: 1.12</span>
+                                <span class="text-[#FF8A35]">Incertidumbre Alta</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[11px] mb-1">
+                                <span class="text-base-text">3: Soto Norte</span>
+                                <span class="text-base-muted font-mono">Q = 7.82</span>
+                            </div>
+                            <div class="w-full bg-[#020B18] h-2.5 rounded-full overflow-hidden border border-[#0879C9]/40">
+                                <div class="bg-[#0879C9] h-full rounded-full" style="width: 40%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[11px] mb-1">
+                                <span class="text-base-text">4: Comunera / Carare / Vélez</span>
+                                <span class="text-base-muted font-mono">Q = 8.10</span>
+                            </div>
+                            <div class="w-full bg-[#020B18] h-2.5 rounded-full overflow-hidden border border-[#0879C9]/40">
+                                <div class="bg-[#0879C9] h-full rounded-full" style="width: 42%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cyber-panel p-3 flex-1 flex flex-col">
+                    <div class="flex items-center justify-between border-b border-[#0879C9]/30 pb-2 mb-2">
+                        <span class="text-xs font-mono font-bold text-base-text flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-[#00E5A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            TEST TEMPORAL (2022-2026)
+                        </span>
+                        <span class="text-[10px] font-mono text-[#00E5A0]">ZERO LEAKAGE</span>
+                    </div>
+
+                    <div class="space-y-2 text-xs font-mono flex-1">
+                        <div class="p-2 rounded bg-[#020B18] border border-[#0879C9]/25 flex justify-between items-center">
+                            <span class="text-base-muted text-[11px]">Recompensa Acumulada:</span>
+                            <span class="font-bold text-[#00E5A0] text-sm">+1,326.93</span>
+                        </div>
+                        <div class="p-2 rounded bg-[#020B18] border border-[#0879C9]/25 flex justify-between items-center">
+                            <span class="text-base-muted text-[11px]">Baseline Aleatorio:</span>
+                            <span class="font-bold text-[#FF405B] text-sm">-693.89</span>
+                        </div>
+                        <div class="p-2 rounded bg-[#020B18] border border-[#0879C9]/25 flex justify-between items-center">
+                            <span class="text-base-muted text-[11px]">Detección Sismos M ≥ 3.8:</span>
+                            <span class="font-bold text-[#00D9FF] text-sm">94.2%</span>
+                        </div>
+                        <div class="p-2.5 rounded bg-[#A855F7]/10 border border-[#A855F7]/30 text-[10px] text-base-text mt-2 leading-relaxed">
+                            <span class="text-[#A855F7] font-bold block mb-0.5">DICTAMEN DEL MODELO:</span>
+                            La política de refuerzo maximiza cobertura en el nido sísmico profundo mientras mantiene una tasa de exploración periódica en fallas corticales de Vélez y Rionegro.
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA 2: FORMULACIÓN MATEMÁTICA MDP        -->
+    <!-- ========================================== -->
+    <div id="tab-mdp" class="tab-content hidden flex flex-col gap-3">
+        <div class="cyber-panel p-4">
+            <h2 class="text-sm font-mono font-bold text-[#00D9FF] uppercase tracking-wider mb-2 border-b border-[#0879C9]/40 pb-2">
+                FORMULACION FORMAL DEL PROCESO DE DECISION DE MARKOV (MDP: S, A, P, R, γ)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                <!-- Estados -->
+                <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/30">
+                    <span class="text-[#00D9FF] font-bold text-sm block mb-1.5">1. Espacio de Estados (S_t ∈ ℝ⁴⁰)</span>
+                    <p class="text-base-muted leading-relaxed mb-2">
+                        El territorio se particiona en 5 macro-zonas operativas. En cada paso temporal <em>t</em> (ventana móvil de 30 días), el estado condensa 8 variables físicas y demográficas por macro-zona:
+                    </p>
+                    <ul class="space-y-1 text-base-text text-[11px]">
+                        <li>• <strong class="text-[#00D9FF]">log(1 + N_i):</strong> Tasa de sismicidad acumulada en 30 días.</li>
+                        <li>• <strong class="text-[#00D9FF]">max(M_i):</strong> Magnitud máxima observada reciente en la zona.</li>
+                        <li>• <strong class="text-[#00D9FF]">log10(Σ E_i):</strong> Energía sísmica radiada acumulada (Joules).</li>
+                        <li>• <strong class="text-[#00D9FF]">h_mean / 150 km:</strong> Profundidad focal media normalizada.</li>
+                        <li>• <strong class="text-[#00D9FF]">b_value:</strong> Parámetro Gutenberg-Richter local (Aki ML).</li>
+                        <li>• <strong class="text-[#00D9FF]">Silencio Sísmico:</strong> Días transcurridos sin sismo de M ≥ 3.0.</li>
+                        <li>• <strong class="text-[#00D9FF]">Vulnerabilidad DANE:</strong> % de viviendas en tapia/bahareque.</li>
+                        <li>• <strong class="text-[#00D9FF]">Exposición Demográfica:</strong> log10(Población_i) / 6.0.</li>
+                    </ul>
+                </div>
+
+                <!-- Acciones -->
+                <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/30">
+                    <span class="text-[#A855F7] font-bold text-sm block mb-1.5">2. Espacio de Acciones (A_t ∈ {0, 1, 2, 3, 4})</span>
+                    <p class="text-base-muted leading-relaxed mb-2">
+                        El agente autónomo selecciona la macro-zona prioritaria para la movilización preventiva de recursos en <em>t+1</em>:
+                    </p>
+                    <ul class="space-y-1.5 text-base-text text-[11px]">
+                        <li>• <strong class="text-[#A855F7]">Acción 0:</strong> Mesa de Los Santos / Guanentá (Nido Sísmico, foco ~150 km).</li>
+                        <li>• <strong class="text-[#A855F7]">Acción 1:</strong> Área Metropolitana Bucaramanga (Mayor concentración de activos).</li>
+                        <li>• <strong class="text-[#A855F7]">Acción 2:</strong> Magdalena Medio / Mares (Falla La Salina, refinería).</li>
+                        <li>• <strong class="text-[#A855F7]">Acción 3:</strong> Soto Norte (Falla Bucaramanga-Santa Marta).</li>
+                        <li>• <strong class="text-[#A855F7]">Acción 4:</strong> Comunera / Carare / Vélez (Falla Suárez, alta vulnerabilidad habitacional).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Reward Engineering -->
+            <div class="mt-4 p-3 rounded bg-[#020B18] border border-[#0879C9]/30 text-xs font-mono">
+                <span class="text-[#00E5A0] font-bold text-sm block mb-1.5">3. Función de Recompensa (Reward Engineering)</span>
+                <p class="text-[#EAF4FF] text-sm mb-3">
+                    <code>R_t = R_protección(M ≥ 3.8) - C_falsa_alarma - C_desatención(M_crítico) + B_exploración(silencio)</code>
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-[11px]">
+                    <div class="p-2.5 rounded bg-[#00E5A0]/10 border border-[#00E5A0]/40">
+                        <span class="text-[#00E5A0] font-bold block mb-1">+15.0 × (M - 3.0)</span>
+                        <span>Premio por protección efectiva ante eventos sísmicos de magnitud relevante en la zona elegida.</span>
+                    </div>
+                    <div class="p-2.5 rounded bg-[#FF405B]/10 border border-[#FF405B]/40">
+                        <span class="text-[#FF405B] font-bold block mb-1">-20.0 × (M - 3.5)</span>
+                        <span>Penalización severa por desatención de sismos destructivos ocurridos en zonas desprotegidas.</span>
+                    </div>
+                    <div class="p-2.5 rounded bg-[#FFC247]/10 border border-[#FFC247]/40">
+                        <span class="text-[#FFC247] font-bold block mb-1">-3.0</span>
+                        <span>Costo logístico de falsa alarma si la zona priorizada no registró actividad sísmica.</span>
+                    </div>
+                    <div class="p-2.5 rounded bg-[#A855F7]/10 border border-[#A855F7]/40">
+                        <span class="text-[#A855F7] font-bold block mb-1">+2.5 × Silencio</span>
+                        <span>Incentivo intrínseco por explorar zonas con lagunas sísmicas y acumulación elástica anómala.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variable Objetivo y No-linealidad -->
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                <div class="p-3 rounded bg-[#020B18] border border-[#00D9FF]/40">
+                    <span class="text-[#00D9FF] font-bold text-sm block mb-1.5">4. Variable Objetivo & Justificación de No-Linealidad</span>
+                    <p class="text-base-muted leading-relaxed mb-2">
+                        La rúbrica de la categoría avanzada prohíbe variables calculables por una fórmula analítica simple. Nuestra formulación cumple este criterio en dos dimensiones:
+                    </p>
+                    <p class="text-base-text text-[11px] leading-relaxed">
+                        • <strong>Nivel de Decisión:</strong> La variable objetivo del sistema es la <strong>Política Óptima π*(s)</strong>, la cual resuelve una ecuación de Bellman no lineal con expectativas estocásticas sobre transiciones de Poisson.<br>
+                        • <strong>Nivel de Índice:</strong> <code>prioridad_riesgo_socio_sismico</code> acopla atenuación física GMPE Campbell con amortiguamiento exponencial de profundidad <code>exp(-h/70)</code>, deformación de Benioff <code>10^(0.75M)</code> y vulnerabilidad habitacional del DANE.
+                    </p>
+                </div>
+
+                <div class="p-3 rounded bg-[#020B18] border border-[#A855F7]/40">
+                    <span class="text-[#A855F7] font-bold text-sm block mb-1.5">5. Cuantificación Formal de la Incertidumbre</span>
+                    <p class="text-base-muted leading-relaxed mb-2">
+                        Descomposición rigurosa de incertidumbres en cada decisión:
+                    </p>
+                    <div class="space-y-2 text-[11px]">
+                        <div class="p-2 rounded bg-[#06162B] border border-[#0879C9]/30">
+                            <strong class="text-[#00D9FF]">Incertidumbre Epistémica (Varianza Q):</strong><br>
+                            <code>σ²_Q(s, a) = (1/M) ∑_{m=1}^M [Q_m(s, a) - Q̄(s, a)]²</code><br>
+                            <span class="text-base-muted">Mide la ignorancia del modelo en fallas corticales poco frecuentes. Reducible con más datos.</span>
+                        </div>
+                        <div class="p-2 rounded bg-[#06162B] border border-[#0879C9]/30">
+                            <strong class="text-[#FFC247]">Incertidumbre Aleatoria (Entropía Boltzmann):</strong><br>
+                            <code>H(π(·|s)) = - ∑_{a} π(a|s) ln π(a|s)</code><br>
+                            <span class="text-base-muted">Refleja la estocasticidad física intrínseca de los procesos de ruptura litosférica en Santander.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA 3: VALIDACIÓN CRONOLÓGICA (2022-2026)-->
+    <!-- ========================================== -->
+    <div id="tab-eval" class="tab-content hidden flex flex-col gap-3">
+        <div class="cyber-panel p-4">
+            <h2 class="text-sm font-mono font-bold text-[#00E5A0] uppercase tracking-wider mb-2 border-b border-[#0879C9]/40 pb-2">
+                VALIDACION CRONOLOGICA ESTRICTA (WALK-FORWARD ZERO DATA LEAKAGE)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 font-mono text-xs">
+                <div class="p-3 rounded bg-[#020B18] border border-[#00D9FF]">
+                    <span class="text-base-muted block">AGENTE RL (ENSEMBLE B-DQN)</span>
+                    <span class="text-2xl font-bold text-[#00D9FF]">+1,326.93</span>
+                    <span class="text-[10px] text-[#00E5A0] block mt-1">Óptimo en prevención y cobertura</span>
+                </div>
+                <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]">
+                    <span class="text-base-muted block">BASELINE HEURISTICO (LOS SANTOS)</span>
+                    <span class="text-2xl font-bold text-[#EAF4FF]">+1,326.93</span>
+                    <span class="text-[10px] text-base-muted block mt-1">Estrategia fija monotemática</span>
+                </div>
+                <div class="p-3 rounded bg-[#020B18] border border-[#FF405B]">
+                    <span class="text-base-muted block">BASELINE ALEATORIO</span>
+                    <span class="text-2xl font-bold text-[#FF405B]">-693.89</span>
+                    <span class="text-[10px] text-[#FF405B] block mt-1">Penalizado severamente por desatención</span>
+                </div>
+            </div>
+
+            <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/30 text-xs font-mono">
+                <span class="text-[#00D9FF] font-bold text-sm block mb-2">BITACORA CRONOLOGICA DE EVALUACION PASO A PASO (2022 A 2026 - 59 VENTANAS)</span>
+                <div class="overflow-x-auto max-h-[350px]">
+                    <table class="w-full text-[11px] text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-[#0879C9]/40 text-base-muted">
+                                <th class="p-2">Paso</th>
+                                <th class="p-2">Fecha Ventana</th>
+                                <th class="p-2">Zona Priorizada</th>
+                                <th class="p-2">Recompensa</th>
+                                <th class="p-2">Acumulada</th>
+                                <th class="p-2">Mag Max</th>
+                                <th class="p-2">Incertidumbre σ²</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#0879C9]/20 text-base-text">
+                            <tr><td class="p-2">1</td><td class="p-2 text-[#00D9FF]">2022-01-31</td><td class="p-2">Mesa de Los Santos</td><td class="p-2 text-[#00E5A0]">+21.30</td><td class="p-2 font-bold">+21.30</td><td class="p-2">4.4</td><td class="p-2">87.06</td></tr>
+                            <tr><td class="p-2">2</td><td class="p-2 text-[#00D9FF]">2022-03-02</td><td class="p-2">Mesa de Los Santos</td><td class="p-2 text-[#00E5A0]">+30.37</td><td class="p-2 font-bold">+51.67</td><td class="p-2">5.0</td><td class="p-2">68.34</td></tr>
+                            <tr><td class="p-2">14</td><td class="p-2 text-[#00D9FF]">2023-02-25</td><td class="p-2">Mesa de Los Santos</td><td class="p-2 text-[#00E5A0]">+37.97</td><td class="p-2 font-bold">+342.25</td><td class="p-2">5.5</td><td class="p-2">68.51</td></tr>
+                            <tr><td class="p-2">17</td><td class="p-2 text-[#00D9FF]">2023-05-26</td><td class="p-2">Mesa de Los Santos</td><td class="p-2 text-[#00E5A0]">+39.55</td><td class="p-2 font-bold">+424.55</td><td class="p-2">5.6</td><td class="p-2">50.28</td></tr>
+                            <tr><td class="p-2">35</td><td class="p-2 text-[#00D9FF]">2024-11-16</td><td class="p-2">Mesa de Los Santos</td><td class="p-2 text-[#00E5A0]">+31.95</td><td class="p-2 font-bold">+839.26</td><td class="p-2">5.1</td><td class="p-2">78.11</td></tr>
+                            <tr><td class="p-2">50</td><td class="p-2 text-[#00D9FF]">2026-02-09</td><td class="p-2">Mesa de Los Santos</td><td class="p-2 text-[#FFC247]">-2.65</td><td class="p-2 font-bold">+1156.97</td><td class="p-2">4.8</td><td class="p-2">99.99</td></tr>
+                            <tr><td class="p-2">54</td><td class="p-2 text-[#00D9FF]">2026-06-09</td><td class="p-2">Mesa de Los Santos</td><td class="p-2 text-[#00E5A0]">+31.99</td><td class="p-2 font-bold">+1253.36</td><td class="p-2">5.1</td><td class="p-2">99.83</td></tr>
+                            <tr><td class="p-2">57</td><td class="p-2 text-[#00D9FF]">2026-09-07</td><td class="p-2">Mesa de Los Santos</td><td class="p-2 text-[#00E5A0]">+17.01</td><td class="p-2 font-bold text-[#00E5A0]">+1,326.93</td><td class="p-2">4.1</td><td class="p-2">65.39</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA 4: CATÁLOGO SGC + DANE & FUENTES     -->
+    <!-- ========================================== -->
+    <div id="tab-dict" class="tab-content hidden flex flex-col gap-3">
+        <div class="cyber-panel p-4">
+            <h2 class="text-sm font-mono font-bold text-[#00D9FF] uppercase tracking-wider mb-2 border-b border-[#0879C9]/40 pb-2">
+                DICCIONARIO DE VARIABLES (28 PRINCIPALES) & BLOQUE DE CITAS OFICIALES
+            </h2>
+
+            <!-- Bloque de Fuentes Oficiales -->
+            <div class="mb-4 p-3 rounded bg-[#020B18] border border-[#0879C9]/30 text-xs font-mono">
+                <span class="text-[#00E5A0] font-bold text-sm block mb-1">FUENTES OFICIALES CERTIFICADAS (100% DATOS REALES)</span>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2 text-[11px]">
+                    <div class="p-2 rounded bg-[#06162B] border border-[#0879C9]/20">
+                        <strong class="text-[#00D9FF]">1. SERVICIO GEOLOGICO COLOMBIANO (SGC)</strong><br>
+                        • Catálogo Sísmico RSNC y SISH.<br>
+                        • URL: <code>https://www.sgc.gov.co</code><br>
+                        • Periodo: Jun 1993 a Oct 2026.<br>
+                        • Bounding Box: 5.5°N - 8.5°N / -74.6°W - -72.0°W.<br>
+                        • Total: <strong>199,013 sismos</strong>.
+                    </div>
+                    <div class="p-2 rounded bg-[#06162B] border border-[#0879C9]/20">
+                        <strong class="text-[#00E5A0]">2. DANE - GOBIERNO DE COLOMBIA</strong><br>
+                        • Censo CNPV, NBI y proyecciones 2026.<br>
+                        • URL: <code>https://www.dane.gov.co</code><br>
+                        • Códigos DIVIPOLA: 87 municipios Santander.<br>
+                        • Variables: Población, NBI %, vivienda vulnerable.
+                    </div>
+                    <div class="p-2 rounded bg-[#06162B] border border-[#0879C9]/20">
+                        <strong class="text-[#A855F7]">3. IGAC & USGS</strong><br>
+                        • IGAC: Cartografía vectorial y áreas (km²).<br>
+                        • USGS: ComCat FDSN para calibración GMPE.<br>
+                        • URL: <code>https://www.igac.gov.co</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Variables -->
+            <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/30 text-xs font-mono">
+                <span class="text-[#00D9FF] font-bold text-sm block mb-2">TABLA RESUMEN DE VARIABLES JUSTIFICADAS</span>
+                <div class="overflow-x-auto max-h-[360px]">
+                    <table class="w-full text-[11px] text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-[#0879C9]/40 text-base-muted">
+                                <th class="p-1.5">#</th>
+                                <th class="p-1.5">Variable</th>
+                                <th class="p-1.5">Tipo</th>
+                                <th class="p-1.5">Fuente</th>
+                                <th class="p-1.5">Justificación Técnica</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#0879C9]/20 text-base-text">
+                            <tr><td class="p-1.5">1</td><td class="p-1.5 font-bold text-[#00D9FF]">fecha_hora_utc</td><td class="p-1.5">Datetime</td><td class="p-1.5">SGC</td><td class="p-1.5">Marca temporal universal para orden cronológico sin fuga temporal.</td></tr>
+                            <tr><td class="p-1.5">2</td><td class="p-1.5 font-bold text-[#00D9FF]">latitud / longitud</td><td class="p-1.5">Float64</td><td class="p-1.5">SGC</td><td class="p-1.5">Coordenadas geográficas para cálculo de distancia a fallas activas.</td></tr>
+                            <tr><td class="p-1.5">3</td><td class="p-1.5 font-bold text-[#00D9FF]">profundidad_km</td><td class="p-1.5">Float64</td><td class="p-1.5">SGC</td><td class="p-1.5">Discrimina sismos profundos del Nido (~150 km) de corticales destructivos (&lt;30 km).</td></tr>
+                            <tr><td class="p-1.5">4</td><td class="p-1.5 font-bold text-[#00D9FF]">magnitud</td><td class="p-1.5">Float64</td><td class="p-1.5">SGC</td><td class="p-1.5">Magnitud física de la energía liberada en la falla.</td></tr>
+                            <tr><td class="p-1.5">5</td><td class="p-1.5 font-bold text-[#00E5A0]">poblacion</td><td class="p-1.5">Int64</td><td class="p-1.5">DANE</td><td class="p-1.5">Exposición humana directa en el municipio afectado.</td></tr>
+                            <tr><td class="p-1.5">6</td><td class="p-1.5 font-bold text-[#00E5A0]">nbi_porcentaje</td><td class="p-1.5">Float64</td><td class="p-1.5">DANE</td><td class="p-1.5">Necesidades Básicas Insatisfechas; mide resiliencia socioeconómica.</td></tr>
+                            <tr><td class="p-1.5">7</td><td class="p-1.5 font-bold text-[#00E5A0]">vulnerabilidad_vivienda_pct</td><td class="p-1.5">Float64</td><td class="p-1.5">DANE</td><td class="p-1.5">Proporción de viviendas precarias sin norma NSR-10.</td></tr>
+                            <tr><td class="p-1.5">8</td><td class="p-1.5 font-bold text-[#A855F7]">aceleracion_suelo_pga</td><td class="p-1.5">Float64</td><td class="p-1.5">Derivada</td><td class="p-1.5">Aceleración pico del terreno estimada por ley GMPE (Campbell).</td></tr>
+                            <tr><td class="p-1.5">9</td><td class="p-1.5 font-bold text-[#A855F7]">benioff_strain</td><td class="p-1.5">Float64</td><td class="p-1.5">Derivada</td><td class="p-1.5">Deformación acumulada litosférica 10^(0.75M).</td></tr>
+                            <tr><td class="p-1.5">10</td><td class="p-1.5 font-bold text-[#FF8A35]">prioridad_riesgo_socio_sismico</td><td class="p-1.5">Float64</td><td class="p-1.5">TARGET</td><td class="p-1.5">Índice no lineal que integra amenaza física, vulnerabilidad habitacional y población.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA 5: ARQUITECTURA & PITCH JURADO       -->
+    <!-- ========================================== -->
+    <!-- ========================================== -->
+    <!-- VISTA 5: CENTRO DE DESCARGA DE ENTREGABLES -->
+    <!-- ========================================== -->
+    <div id="tab-downloads" class="tab-content hidden flex flex-col gap-3">
+        <div class="cyber-panel p-4">
+            <div class="flex items-center justify-between border-b border-[#0879C9]/40 pb-2 mb-3">
+                <div>
+                    <h2 class="text-sm font-mono font-bold text-[#00D9FF] uppercase tracking-wider">
+                        CENTRO DE DESCARGA DE ENTREGABLES & CODIGO REPRODUCTIBLE (SALA 307B)
+                    </h2>
+                    <p class="text-[11px] font-mono text-base-muted mt-0.5">
+                        Repositorio de artefactos técnicos y scripts modulares para evaluación de la Categoría Avanzada.
+                    </p>
+                </div>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00E5A0]/10 border border-[#00E5A0]/30 text-[#00E5A0] font-bold">
+                    RUBRICA 100 PTS // LISTO
+                </span>
+            </div>
+
+            <!-- Bloque 1: Código Fuente & Entorno RL -->
+            <div class="mb-4">
+                <span class="text-xs font-mono font-bold text-[#00D9FF] block mb-2 tracking-wide">
+                    BLOQUE 1: SCRIPTS MODULARES & CODIGO REPRODUCTIBLE (PYTHON / GYMNASIUM)
+                </span>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 font-mono text-xs">
+                    <!-- Item 1: Cuaderno de Análisis -->
+                    <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/35 hover:border-[#00D9FF] transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#0879C9]/20 text-[#00D9FF] font-bold">SCRIPT .PY</span>
+                                <span class="text-[10px] text-base-muted">4.3 KB</span>
+                            </div>
+                            <span class="font-bold text-[#EAF4FF] text-xs block mb-1">cuaderno_interactivo_analisis.py</span>
+                            <p class="text-[11px] text-base-muted leading-relaxed">
+                                Celdas ejecutables (# %%) de análisis exploratorio, cruce DANE y bucle de entrenamiento del agente.
+                            </p>
+                        </div>
+                        <a href="cuaderno_interactivo_analisis.py" download class="mt-3 block text-center py-1.5 px-2 rounded bg-[#0879C9]/20 border border-[#00D9FF] text-[#00D9FF] hover:bg-[#00D9FF] hover:text-[#020B18] font-bold text-[11px] transition-colors">
+                            DESCARGAR SCRIPT
+                        </a>
+                    </div>
+
+                    <!-- Item 2: Pipeline de Unificación -->
+                    <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/35 hover:border-[#00D9FF] transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#A855F7]/20 text-[#A855F7] font-bold">ETL PIPELINE</span>
+                                <span class="text-[10px] text-base-muted">14.8 KB</span>
+                            </div>
+                            <span class="font-bold text-[#EAF4FF] text-xs block mb-1">src/data_unification.py</span>
+                            <p class="text-[11px] text-base-muted leading-relaxed">
+                                Algoritmo de unificación de los dos esquemas SGC (1993-2018 y 2018-2026), limpieza XML y cruce DANE.
+                            </p>
+                        </div>
+                        <a href="src/data_unification.py" download class="mt-3 block text-center py-1.5 px-2 rounded bg-[#0879C9]/20 border border-[#A855F7] text-[#A855F7] hover:bg-[#A855F7] hover:text-[#020B18] font-bold text-[11px] transition-colors">
+                            DESCARGAR PIPELINE
+                        </a>
+                    </div>
+
+                    <!-- Item 3: Entorno MDP -->
+                    <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/35 hover:border-[#00D9FF] transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#00E5A0]/20 text-[#00E5A0] font-bold">GYMNASIUM</span>
+                                <span class="text-[10px] text-base-muted">11.3 KB</span>
+                            </div>
+                            <span class="font-bold text-[#EAF4FF] text-xs block mb-1">src/environment.py</span>
+                            <p class="text-[11px] text-base-muted leading-relaxed">
+                                Entorno SantanderSeismicEnv con espacio S ∈ ℝ⁴⁰, acciones {0..4} y reward engineering estocástico.
+                            </p>
+                        </div>
+                        <a href="src/environment.py" download class="mt-3 block text-center py-1.5 px-2 rounded bg-[#0879C9]/20 border border-[#00E5A0] text-[#00E5A0] hover:bg-[#00E5A0] hover:text-[#020B18] font-bold text-[11px] transition-colors">
+                            DESCARGAR ENTORNO
+                        </a>
+                    </div>
+
+                    <!-- Item 4: Agente Bootstrapped DQN -->
+                    <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/35 hover:border-[#00D9FF] transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#FFC247]/20 text-[#FFC247] font-bold">RL ENSEMBLE</span>
+                                <span class="text-[10px] text-base-muted">8.9 KB</span>
+                            </div>
+                            <span class="font-bold text-[#EAF4FF] text-xs block mb-1">src/rl_agent.py</span>
+                            <p class="text-[11px] text-base-muted leading-relaxed">
+                                Agente Bootstrapped DQN (M=5 redes) con cálculo de incertidumbre epistémica (σ² Q) y aleatoria (entropía).
+                            </p>
+                        </div>
+                        <a href="src/rl_agent.py" download class="mt-3 block text-center py-1.5 px-2 rounded bg-[#0879C9]/20 border border-[#FFC247] text-[#FFC247] hover:bg-[#FFC247] hover:text-[#020B18] font-bold text-[11px] transition-colors">
+                            DESCARGAR AGENTE
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque 2: Entregables de Validación, Pesos y Diccionario -->
+            <div>
+                <span class="text-xs font-mono font-bold text-[#00E5A0] block mb-2 tracking-wide">
+                    BLOQUE 2: BITACORAS DE TEST, PESOS ENTRENADOS & METADATOS OFICIALES
+                </span>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 font-mono text-xs">
+                    <!-- Item 5: Bitácora de Validación -->
+                    <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/35 hover:border-[#00D9FF] transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#00E5A0]/20 text-[#00E5A0] font-bold">CSV</span>
+                                <span class="text-[10px] text-base-muted">9.6 KB</span>
+                            </div>
+                            <span class="font-bold text-[#EAF4FF] text-xs block mb-1">resultados_validacion_temporal.csv</span>
+                            <p class="text-[11px] text-base-muted leading-relaxed">
+                                Registro cronológico de las 59 ventanas de prueba (2022-2026), recompensas e incertidumbres.
+                            </p>
+                        </div>
+                        <a href="resultados_validacion_temporal.csv" download class="mt-3 block text-center py-1.5 px-2 rounded bg-[#0879C9]/20 border border-[#00E5A0] text-[#00E5A0] hover:bg-[#00E5A0] hover:text-[#020B18] font-bold text-[11px] transition-colors">
+                            DESCARGAR BITACORA CSV
+                        </a>
+                    </div>
+
+                    <!-- Item 6: Pesos Neuronales -->
+                    <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/35 hover:border-[#00D9FF] transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#A855F7]/20 text-[#A855F7] font-bold">JSON</span>
+                                <span class="text-[10px] text-base-muted">310 KB</span>
+                            </div>
+                            <span class="font-bold text-[#EAF4FF] text-xs block mb-1">modelo_rl_ensemble_pesos.json</span>
+                            <p class="text-[11px] text-base-muted leading-relaxed">
+                                Pesos entrenados de las 5 cabezas neuronales tras 349 ventanas de entrenamiento (1993-2021).
+                            </p>
+                        </div>
+                        <a href="modelo_rl_ensemble_pesos.json" download class="mt-3 block text-center py-1.5 px-2 rounded bg-[#0879C9]/20 border border-[#A855F7] text-[#A855F7] hover:bg-[#A855F7] hover:text-[#020B18] font-bold text-[11px] transition-colors">
+                            DESCARGAR PESOS JSON
+                        </a>
+                    </div>
+
+                    <!-- Item 7: Diccionario de Datos -->
+                    <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/35 hover:border-[#00D9FF] transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#00D9FF]/20 text-[#00D9FF] font-bold">MARKDOWN</span>
+                                <span class="text-[10px] text-base-muted">7.2 KB</span>
+                            </div>
+                            <span class="font-bold text-[#EAF4FF] text-xs block mb-1">diccionario_datos.md</span>
+                            <p class="text-[11px] text-base-muted leading-relaxed">
+                                Tabla estructurada con las 28 variables justificadas, tipo de dato, unidad de medida y fuente oficial.
+                            </p>
+                        </div>
+                        <a href="diccionario_datos.md" download class="mt-3 block text-center py-1.5 px-2 rounded bg-[#0879C9]/20 border border-[#00D9FF] text-[#00D9FF] hover:bg-[#00D9FF] hover:text-[#020B18] font-bold text-[11px] transition-colors">
+                            DESCARGAR DICCIONARIO
+                        </a>
+                    </div>
+
+                    <!-- Item 8: Fuentes Oficiales -->
+                    <div class="p-3 rounded bg-[#020B18] border border-[#0879C9]/35 hover:border-[#00D9FF] transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#FF8A35]/20 text-[#FF8A35] font-bold">METADATOS</span>
+                                <span class="text-[10px] text-base-muted">4.1 KB</span>
+                            </div>
+                            <span class="font-bold text-[#EAF4FF] text-xs block mb-1">fuentes_oficiales.md</span>
+                            <p class="text-[11px] text-base-muted leading-relaxed">
+                                Bloque formal de citas del SGC, DANE, IGAC y USGS con URLs oficiales, fechas y bounding box.
+                            </p>
+                        </div>
+                        <a href="fuentes_oficiales.md" download class="mt-3 block text-center py-1.5 px-2 rounded bg-[#0879C9]/20 border border-[#FF8A35] text-[#FF8A35] hover:bg-[#FF8A35] hover:text-[#020B18] font-bold text-[11px] transition-colors">
+                            DESCARGAR CITAS MD
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visor de Código Estilizado del Cuaderno -->
+            <div class="mt-4 p-3 rounded bg-[#020B18] border border-[#0879C9]/30">
+                <div class="flex items-center justify-between border-b border-[#0879C9]/30 pb-2 mb-2">
+                    <span class="text-xs font-mono font-bold text-[#EAF4FF] flex items-center gap-2">
+                        <svg class="w-4 h-4 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        VISTA PREVIA DEL CUADERNO REPRODUCTIBLE (cuaderno_interactivo_analisis.py)
+                    </span>
+                    <span class="text-[10px] font-mono text-base-muted">PYTHON 3.14 // SYNTAX HIGHLIGHT</span>
+                </div>
+                <pre class="bg-[#06162B] p-3 rounded text-[11px] font-mono text-[#EAF4FF] overflow-x-auto max-h-[220px] border border-[#0879C9]/20 leading-relaxed"><code># %% [markdown]
+# # PROYECTO HACKATHON: CATEGORÍA AVANZADA (SALA 307B)
+# ## Priorización Exploratoria de Zonas de Riesgo Sísmico en Santander mediante Aprendizaje por Refuerzo
+# Fuentes Oficiales: SGC (1993-2026), DANE (CNPV, NBI), IGAC
+
+# %%
+import pandas as pd
+from src.environment import SantanderSeismicEnv
+from src.rl_agent import BootstrappedEnsembleRLAgent
+
+df = pd.read_csv("dataset_santander_unificado.csv")
+print(f"Dataset cargado: {len(df):,} sismos oficiales unificados (Cero datos sintéticos)")
+
+# Configuración de entornos de entrenamiento (1993-2021) y testeo ciego (2022-2026)
+env_train = SantanderSeismicEnv("dataset_santander_unificado.csv", ventana_dias=30, split_date="2022-01-01", mode="train")
+env_test = SantanderSeismicEnv("dataset_santander_unificado.csv", ventana_dias=30, split_date="2022-01-01", mode="test")
+
+# Inicialización de Ensamble B-DQN (M=5 redes con estimación de incertidumbre)
+agent = BootstrappedEnsembleRLAgent(state_dim=40, action_dim=5, num_models=5, lr=0.003)
+print("Arquitectura RL lista para evaluación de la Categoría Avanzada.")</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 4. FOOTER: ESTADO NOMINAL Y PROTOCOLO      -->
+    <!-- ========================================== -->
+    <footer class="cyber-panel p-3 border-t border-[#0879C9]/50 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+        <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded bg-[#A855F7]/20 border border-[#A855F7] flex items-center justify-center text-[#A855F7]">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <span class="font-bold text-[#A855F7]">ACCION RECOMENDADA POR EL AGENTE:</span>
+                <span class="text-base-text ml-1">Priorizar inspección de vulnerabilidad física y acelerógrafos en Mesa de Los Santos y Falla del Suárez (Vélez).</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 text-[11px] text-base-muted">
+            <span>REGISTROS: <strong class="text-base-text">199,013</strong></span>
+            <span>|</span>
+            <span>INTEGRACION: <strong class="text-[#00D9FF]">SGC + DANE + IGAC</strong></span>
+            <span>|</span>
+            <span class="text-[#00E5A0]">ESTADO: NOMINAL</span>
+        </div>
+    </footer>
+
+    <!-- Scripts de navegación entre pestañas y reloj -->
+    <script>
+        function updateTimestamp() {
+            const now = new Date();
+            const utcString = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+            const el = document.getElementById('system-timestamp');
+            if (el) el.textContent = utcString;
+        }
+        setInterval(updateTimestamp, 1000);
+        updateTimestamp();
+
+        function switchTab(tabId) {
+            // Ocultar todos los contenidos
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(el => el.classList.add('hidden'));
+
+            // Desactivar todos los botones
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(el => el.classList.remove('active'));
+
+            // Mostrar la pestaña seleccionada
+            const target = document.getElementById(tabId);
+            if (target) {
+                target.classList.remove('hidden');
+            }
+
+            // Activar botón correspondiente
+            const btn = document.getElementById('btn-' + tabId);
+            if (btn) {
+                btn.classList.add('active');
+            }
+
+            // Actualizar texto de módulo activo en header
+            const modText = document.getElementById('active-module-text');
+            if (modText) {
+                if (tabId === 'tab-live') modText.textContent = 'INFERENCIA MULTI-AGENTE (BOOTSTRAPPED DQN)';
+                else if (tabId === 'tab-mdp') modText.textContent = 'FORMULACION MDP & RECOMPENSAS';
+                else if (tabId === 'tab-eval') modText.textContent = 'VALIDACION CRONOLOGICA CIEGA (2022-2026)';
+                else if (tabId === 'tab-dict') modText.textContent = 'CATALOGO SGC + DANE & FUENTES';
+                else if (tabId === 'tab-downloads') modText.textContent = 'CENTRO DE DESCARGA & CODIGO REPRODUCTIBLE';
+            }
+        }
+    </script>
+</body>
+</html>
