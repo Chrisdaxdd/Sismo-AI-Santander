@@ -92,8 +92,8 @@ Donde:
 
 ### 1. Clonar el Repositorio
 ```bash
-git clone https://github.com/TU_USUARIO/sismo-ai-santander-rl.git
-cd sismo-ai-santander-rl
+git clone https://github.com/Chrisdaxdd/Sismo-AI-Santander.git
+cd Sismo-AI-Santander
 ```
 
 ### 2. Instalar Dependencias
